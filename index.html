@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="el">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0"
+    />
+    <title>Thavma Forecast.gr</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <!-- LOADING SCREEN -->
+    <div id="loadingScreen" class="loading-screen">
+      <div class="loading-logo">
+        <div class="loading-icon">🌦️</div>
+        <div class="loading-brand">Thavma Forecast.gr</div>
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">
+          Η ιστοσελίδα φορτώνει... παρακαλώ περιμένετε!
+        </div>
+      </div>
+    </div>
+
+    <div id="realisticBg" class="realistic-bg hidden">
+      <canvas id="weatherCanvas"></canvas>
+    </div>
+
+    <!-- MOBILE SEARCH OVERLAY -->
+    <div id="mobileSearchOverlay" class="mobile-search-overlay hidden">
+      <div class="mobile-search-inner">
+        <button id="mobileSearchClose" class="mobile-search-close">
+          <i class="bi bi-x-lg"></i>
+        </button>
+        <div class="mobile-search-box">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            id="mobileSearchInput"
+            placeholder="Αναζήτηση περιοχής..."
+            autocomplete="off"
+          />
+        </div>
+        <div id="mobileSuggestionsBox" class="suggestions-box hidden"></div>
+      </div>
+    </div>
+
+    <nav class="navbar">
+      <div class="navbar-left">
+        <div class="brand" id="brandLogo" title="Αρχική">
+          <div class="brand-icon">🌦️</div>
+          <div class="brand-text">
+            <span class="brand-main">Thavma</span>
+            <span class="brand-sub">Forecast.gr</span>
+          </div>
+        </div>
+        <div class="mobile-nav-actions">
+          <button id="mobileSearchBtn" class="mobile-icon-btn">
+            <i class="bi bi-search"></i>
+          </button>
+          <button id="mobileHeartBtn" class="mobile-icon-btn heart-btn">
+            <i class="bi bi-heart"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="search-area desktop-only">
+        <div class="search-wrapper">
+          <div class="search-box" id="desktopSearchBox">
+            <i class="bi bi-search search-icon"></i>
+            <input
+              type="text"
+              id="cityInput"
+              placeholder="Αναζήτηση περιοχής..."
+              autocomplete="off"
+            />
+            <button id="searchBtn" class="search-submit-btn">
+              <i class="bi bi-arrow-right"></i>
+            </button>
+          </div>
+          <div id="suggestionsBox" class="suggestions-box hidden"></div>
+        </div>
+        <button
+          id="heartBtn"
+          class="heart-btn"
+          title="Αποθήκευση στα αγαπημένα"
+        >
+          <i class="bi bi-heart"></i>
+        </button>
+      </div>
+
+      <div class="nav-links">
+        <button class="nav-tab" data-tab="home" id="tabHome">
+          <i class="bi bi-house-fill"></i>
+        </button>
+        <button class="nav-tab active" data-tab="now" id="tabNow">Τώρα</button>
+        <button class="nav-tab" data-tab="hourly" id="tabHourly">Ωριαία</button>
+        <button class="nav-tab" data-tab="daily" id="tabDaily">Ημερήσια</button>
+        <button class="nav-tab" data-tab="stats" id="tabStats">
+          Στατιστικά
+        </button>
+        <button class="nav-tab" data-tab="maps" id="tabMaps">Χάρτης</button>
+        <button class="nav-tab" data-tab="settings" id="tabSettings">
+          <i class="bi bi-gear-fill"></i>
+        </button>
+      </div>
+    </nav>
+
+    <div class="favorites-bar" id="favoritesBar"></div>
+
+    <div class="universal-now-bar" id="universalNowBar">
+      <span id="uniCity">--</span>
+      <span class="sep">|</span>
+      <div class="uni-icon-wrap" id="uniIconWrap">
+        <span id="uniIcon"></span>
+        <span id="uniSevereIndicator" class="severe-indicator hidden">!</span>
+      </div>
+      <span id="uniTemp">--°</span>
+      <span class="sep">|</span>
+      <span id="uniDesc">--</span>
+      <span class="sep">|</span>
+      <span id="uniLocalTime" style="color: #00d2ff; font-weight: 700"
+        >--:--</span
+      >
+    </div>
+
+    <!-- SINGLE ALERTS BANNER -->
+    <div id="alertsBanner" class="alerts-banner hidden">
+      <button class="alert-nav-btn" id="alertPrev">&#8249;</button>
+      <div id="alertBannerContent" class="alert-banner-content"></div>
+      <button class="alert-nav-btn" id="alertNext">&#8250;</button>
+      <span id="alertCounter" class="alert-counter"></span>
+    </div>
+
+    <main class="main-content">
+      <!-- HOME TAB -->
+      <div id="homeSection" class="weather-section hidden">
+        <div class="home-layout">
+          <div class="home-left">
+            <div class="home-athens-card" id="homeAthensCard">
+              <div class="home-city-name">Αθήνα</div>
+              <div class="home-city-icon" id="homeAthensIcon"></div>
+              <div class="home-city-temp" id="homeAthensTemp">--°</div>
+              <div class="home-city-desc" id="homeAthensDesc">--</div>
+              <div class="home-city-stats">
+                <div class="home-stat">
+                  <i class="bi bi-thermometer-high"></i
+                  ><span id="homeAthensMax">--°</span><small>Μέγ.</small>
+                </div>
+                <div class="home-stat">
+                  <i class="bi bi-thermometer-low"></i
+                  ><span id="homeAthensMin">--°</span><small>Ελάχ.</small>
+                </div>
+                <div class="home-stat">
+                  <i class="bi bi-droplet-fill"></i
+                  ><span id="homeAthensRain">-- mm</span><small>Υετός</small>
+                </div>
+              </div>
+            </div>
+            <div class="home-radar-wrap">
+              <div class="home-section-title">
+                <i class="bi bi-broadcast"></i> Live Radar Αθήνας
+              </div>
+              <iframe
+                id="homeRadarFrame"
+                class="home-radar-frame"
+                src="https://embed.windy.com/embed2.html?lat=37.98&lon=23.73&zoom=8&level=surface&overlay=radar&product=ecmwf&menu=&message=&marker=&calendar=&pressure=&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C"
+                allowfullscreen
+              ></iframe>
+            </div>
+          </div>
+          <div class="home-center">
+            <div id="homeGreeceCities" class="home-cities-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOW TAB -->
+      <div id="nowSection" class="weather-section">
+        <div class="now-location-header">
+          <div>
+            <div id="nowCity" class="now-city-name">Αναζήτηση...</div>
+            <div id="nowLocalTime" class="now-local-time">--:-- τοπική ώρα</div>
+          </div>
+          <div class="now-header-right">
+            <span class="live-badge" id="liveBadge">● LIVE</span>
+            <span class="data-source-badge" id="dataSourceBadge">OWM</span>
+          </div>
+        </div>
+        <div class="now-layout-container">
+          <div class="now-left-square">
+            <span id="nowTempTopLeft" class="now-temp-big">--°</span>
+            <div class="anim-icon-xlarge" id="nowIcon"></div>
+            <div id="nowShortDesc" class="now-short-desc">--</div>
+            <div class="now-feels-mini" id="nowFeelsMini"></div>
+          </div>
+          <div class="now-right-bars">
+            <div class="now-bar-analysis" id="nowAnalysisText">
+              Φόρτωση δεδομένων... παρακαλώ περιμένετε.
+            </div>
+            <div class="now-bar-warning hidden" id="nowWarningBar"></div>
+          </div>
+        </div>
+        <div class="now-8-boxes-grid" id="nowEightBoxes"></div>
+      </div>
+
+      <!-- HOURLY TAB -->
+      <div id="hourlySection" class="weather-section hidden">
+        <h3 class="section-title" id="hourlyTitle">Ωριαία πρόγνωση</h3>
+        <div class="chart-container-box">
+          <h4>
+            <i class="bi bi-cloud-rain-heavy-fill"></i> Γράφημα Υετού 10 ωρών
+          </h4>
+          <div class="dynamic-chart" id="precipitationChart"></div>
+        </div>
+        <div class="chart-container-box">
+          <h4><i class="bi bi-graph-up"></i> Θερμοκρασία 24 ωρών</h4>
+          <canvas id="hourlyTempChart" class="stats-canvas"></canvas>
+        </div>
+        <h3 class="section-title">
+          Ωριαία πρόγνωση 24 ωρών
+          <small style="font-size: 12px; color: #666"
+            >(κλικ για λεπτομέρειες)</small
+          >
+        </h3>
+        <div id="hourlyResults" class="vertical-hourly-list"></div>
+      </div>
+
+      <!-- DAILY TAB -->
+      <div id="dailySection" class="weather-section hidden">
+        <h3 class="section-title" id="dailyTitle">Πρόγνωση 14 Ημερών</h3>
+        <div id="dailyResults" class="vertical-list"></div>
+      </div>
+
+      <!-- STATS TAB -->
+      <div id="statsSection" class="weather-section hidden">
+        <div class="stats-layout">
+          <aside class="stats-sidebar">
+            <div class="stats-sidebar-card">
+              <h4><i class="bi bi-calendar3"></i> Μηνιαία Στατιστικά (ERA5)</h4>
+              <ul class="stats-meta-list">
+                <li><span>Μέση Μέγιστη:</span><b id="statMonthMax">--°C</b></li>
+                <li>
+                  <span>Μέση Ελάχιστη:</span><b id="statMonthMin">--°C</b>
+                </li>
+                <li>
+                  <span>Εκτιμ. Υετός:</span><b id="statMonthRain">-- mm</b>
+                </li>
+                <li>
+                  <span>Ημέρες Βροχής:</span><b id="statMonthRainDays">--</b>
+                </li>
+                <li>
+                  <span>Μέση Υγρασία:</span><b id="statMonthHumidity">--%</b>
+                </li>
+                <li>
+                  <span>Υψηλότερο Ύψος:</span><b id="statMonthMaxRain">-- mm</b>
+                </li>
+                <li>
+                  <span>Μέσο Ύψος/ημ.:</span><b id="statMonthAvgRain">-- mm</b>
+                </li>
+              </ul>
+            </div>
+            <div class="stats-sidebar-card">
+              <h4>
+                <i class="bi bi-calendar-check"></i> Ετήσια Ιστορικά (ERA5)*
+              </h4>
+              <ul class="stats-meta-list">
+                <li><span>Ρεκόρ Υψηλής:</span><b id="yearHigh">--°C</b></li>
+                <li><span>Ρεκόρ Χαμηλής:</span><b id="yearLow">--°C</b></li>
+                <li>
+                  <span>Μέση Ετήσια Υγρασία:</span><b id="yearAvgHum">--%</b>
+                </li>
+                <li>
+                  <span>Σταθμός:</span
+                  ><b id="stationName" style="color: #00d2ff">Open-Meteo</b>
+                </li>
+              </ul>
+            </div>
+            <div class="stats-sidebar-card">
+              <h4><i class="bi bi-broadcast"></i> Live Καταγραφές Σήμερα</h4>
+              <div class="stats-update-info" id="statsLastUpdate">
+                Καταγραφή κάθε 10'
+              </div>
+              <div
+                id="liveStatsSummary"
+                class="stats-meta-list"
+                style="margin-top: 10px"
+              ></div>
+            </div>
+          </aside>
+          <div class="stats-main-content">
+            <div class="chart-container-box">
+              <h4>
+                <i class="bi bi-thermometer-half"></i> Θερμοκρασία Σήμερα (°C)
+              </h4>
+              <div class="stats-line-chart-wrap">
+                <canvas id="tempDayChart" class="stats-canvas"></canvas>
+              </div>
+            </div>
+            <div class="chart-container-box">
+              <h4><i class="bi bi-droplet-half"></i> Υγρασία Σήμερα (%)</h4>
+              <div class="stats-line-chart-wrap">
+                <canvas id="humidityDayChart" class="stats-canvas"></canvas>
+              </div>
+            </div>
+            <div class="chart-container-box">
+              <h4>
+                <i class="bi bi-cloud-rain-heavy-fill"></i> Ύψος Βροχής Σήμερα
+                (mm)
+              </h4>
+              <div class="stats-line-chart-wrap">
+                <canvas id="rainDayChart" class="stats-canvas"></canvas>
+              </div>
+            </div>
+            <div class="chart-container-box">
+              <h4><i class="bi bi-wind"></i> Ταχύτητα Ανέμου Σήμερα (km/h)</h4>
+              <div class="stats-line-chart-wrap">
+                <canvas id="windDayChart" class="stats-canvas"></canvas>
+              </div>
+            </div>
+            <div class="chart-container-box">
+              <h4>
+                <i class="bi bi-bar-chart-steps"></i> Διακύμανση Θερμοκρασίας 14
+                Ημερών
+              </h4>
+              <div class="stats-bars-container" id="statsBarsContainer"></div>
+            </div>
+            <div class="stats-grid">
+              <div class="now-card">
+                <i class="bi bi-cloud-rain-heavy-fill"></i>
+                <div class="now-card-info">
+                  <h5>Σύνολο Υετού 14ημ.</h5>
+                  <p id="statTotalRain">-- mm</p>
+                </div>
+              </div>
+              <div class="now-card">
+                <i class="bi bi-sun-fill"></i>
+                <div class="now-card-info">
+                  <h5>Μέγιστος UV</h5>
+                  <p id="statMaxUV">--</p>
+                </div>
+              </div>
+              <div class="now-card">
+                <i class="bi bi-thermometer-high"></i>
+                <div class="now-card-info">
+                  <h5>Μέγιστη Σήμερα</h5>
+                  <p id="statTodayMax">--°C</p>
+                </div>
+              </div>
+              <div class="now-card">
+                <i class="bi bi-thermometer-low"></i>
+                <div class="now-card-info">
+                  <h5>Ελάχιστη Σήμερα</h5>
+                  <p id="statTodayMin">--°C</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAPS TAB -->
+      <div id="mapsSection" class="weather-section hidden">
+        <h3 class="section-title">Live Χάρτης</h3>
+        <div class="maps-tabs">
+          <button class="maps-tab-btn active" data-maps-tab="windy">
+            <i class="bi bi-globe"></i> Windy Live
+          </button>
+          <button class="maps-tab-btn" data-maps-tab="hercules">
+            <i class="bi bi-map"></i> Ηρακλής (ΕΑΑ)
+          </button>
+        </div>
+        <div id="windySection">
+          <div class="map-controls">
+            <button class="map-btn active" data-windy="rain">
+              <i class="bi bi-cloud-rain-fill"></i> ΥΕΤΟΣ
+            </button>
+            <button class="map-btn" data-windy="temp">
+              <i class="bi bi-thermometer-half"></i> ΘΕΡΜΟΚΡΑΣΙΑ
+            </button>
+            <button class="map-btn" data-windy="wind">
+              <i class="bi bi-wind"></i> ΑΝΕΜΟΙ
+            </button>
+            <button class="map-btn" data-windy="pressure">
+              <i class="bi bi-arrow-up-circle"></i> ΠΙΕΣΗ
+            </button>
+            <button class="map-btn" data-windy="snowcover">
+              <i class="bi bi-snow"></i> ΧΙΟΝΙ
+            </button>
+            <button class="map-btn" data-windy="clouds">
+              <i class="bi bi-cloud-fill"></i> ΣΥΝΝΕΦΑ
+            </button>
+            <button class="map-btn" data-windy="waves">
+              <i class="bi bi-water"></i> ΚΥΜΑΤΑ
+            </button>
+            <button class="map-btn map-btn-radar" data-windy="radar">
+              <i class="bi bi-broadcast"></i> LIVE ΡΑΝΤΆΡ
+            </button>
+          </div>
+          <div class="map-model-controls">
+            <span class="map-model-label">Μοντέλο:</span>
+            <button class="map-model-btn active" data-model="ecmwf">
+              ECMWF
+            </button>
+            <button class="map-model-btn" data-model="gfs">GFS</button>
+            <button class="map-model-btn" data-model="icon">ICON</button>
+          </div>
+          <div id="mapLegend" class="map-legend"></div>
+          <iframe
+            id="windyFrame"
+            class="windy-frame"
+            allowfullscreen
+            allow="geolocation"
+            title="Windy Weather Map"
+          ></iframe>
+        </div>
+        <div id="herculesSection" class="hidden">
+          <div class="hercules-controls">
+            <div class="hercules-row">
+              <span class="map-model-label">Χάρτης Ηρακλής:</span>
+              <button class="herc-btn active" data-slug="precipitation">
+                🌧️ Βροχή
+              </button>
+              <button class="herc-btn" data-slug="2m-surface-temperature">
+                🌡️ Θερμ. 2m
+              </button>
+              <button class="herc-btn" data-slug="10m-surface-temperature">
+                💨 Άνεμοι 10m
+              </button>
+              <button class="herc-btn" data-slug="850hpa-temperature">
+                📊 850hPa
+              </button>
+              <button class="herc-btn" data-slug="cover-cloud">
+                ☁️ Σύννεφα
+              </button>
+            </div>
+          </div>
+          <div id="herculesFrameWrap" class="hercules-frame-wrap">
+            <div class="hercules-info-panel">
+              <div class="herc-info-icon">🗺️</div>
+              <h3>Χάρτες Ηρακλής (ΕΑΑ)</h3>
+              <p>Επιλέξτε έναν χάρτη παραπάνω</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS TAB -->
+      <div id="settingsSection" class="weather-section hidden">
+        <h3 class="section-title"><i class="bi bi-sliders"></i> Ρυθμίσεις</h3>
+        <div class="settings-grid">
+          <div class="settings-card">
+            <h4>🌍 Γλώσσα & Μονάδες</h4>
+            <div class="setting-row">
+              <label>Γλώσσα:</label
+              ><select id="langSelect">
+                <option value="GR">Ελληνικά</option>
+                <option value="EN">English</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <label>Θερμοκρασία:</label
+              ><select id="unitSelect">
+                <option value="C">°C (Celsius)</option>
+                <option value="F">°F (Fahrenheit)</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <label>Ταχύτητα Ανέμου:</label
+              ><select id="windUnitSelect">
+                <option value="kmh">km/h</option>
+                <option value="ms">m/s</option>
+                <option value="knots">Knots (kn)</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-card">
+            <h4>🛰️ Μοντέλο Δεδομένων</h4>
+            <div class="setting-row">
+              <label>Πρόγνωση:</label
+              ><select id="modelSelect">
+                <option value="best_match">🏆 Best Match (Αυτόματο)</option>
+                <option value="ecmwf_ifs025">🇪🇺 ECMWF IFS 0.25°</option>
+                <option value="ecmwf_aifs025">🤖 ECMWF AIFS (AI)</option>
+                <option value="gfs_seamless">🇺🇸 GFS Seamless</option>
+                <option value="gfs025">🇺🇸 GFS 0.25°</option>
+                <option value="icon_seamless">🇩🇪 ICON (DWD)</option>
+                <option value="meteofrance_seamless">🇫🇷 Météo-France</option>
+                <option value="gem_seamless">🇨🇦 GEM (Canada)</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <label>Live Ανανέωση:</label
+              ><select id="refreshSelect">
+                <option value="manual">Χειροκίνητα</option>
+                <option value="1">1 Λεπτό</option>
+                <option value="5">5 Λεπτά</option>
+                <option value="10">10 Λεπτά</option>
+                <option value="30">30 Λεπτά</option>
+                <option value="60">1 Ώρα</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-card">
+            <h4>🎨 Εμφάνιση</h4>
+            <div class="setting-row">
+              <label>Θέμα:</label
+              ><select id="themeSelect">
+                <option value="dynamic"> Δυναμικό (Βάσει Καιρού)</option>
+                <option value="realistic"> Ρεαλιστικό (Live Canvas)</option>
+                <option value="midnight"> Midnight Blue</option>
+                <option value="aurora"> Emerald Aurora</option>
+                <option value="neon"> Cyberpunk Neon</option>
+                <option value="sunset"> Sunset Gradient</option>
+                <option value="storm"> Dark</option>
+                <option value="ocean"> Deep Ocean</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="settings-info">
+          <p>
+            📡 <b>Πηγές:</b>
+            <a href="https://open-meteo.com" target="_blank">Open-Meteo</a>
+            (ECMWF/GFS/ERA5) +
+            <a href="https://openweathermap.org" target="_blank"
+              >OpenWeatherMap</a
+            >
+            (Live) +
+            <a href="https://www.windy.com" target="_blank">Windy</a> (Χάρτες)
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <footer class="main-footer">
+      <div class="footer-social">
+        <a
+          href="https://www.youtube.com/@ThavmaForecastNation"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="social-link youtube"
+          ><i class="bi bi-youtube"></i> YouTube</a
+        >
+        <a
+          href="https://discord.gg/eMMnBqFtCM"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="social-link discord"
+          ><i class="bi bi-discord"></i> Discord</a
+        >
+      </div>
+      <div class="footer-data-sources">
+        <span
+          >🌍
+          <a href="https://open-meteo.com" target="_blank">Open-Meteo</a></span
+        >
+        <span
+          >🛰️ <a href="https://www.ecmwf.int" target="_blank">ECMWF</a></span
+        >
+        <span
+          >🇺🇸
+          <a href="https://www.ncep.noaa.gov" target="_blank">NOAA/GFS</a></span
+        >
+        <span
+          >🗺️ <a href="https://www.windy.com" target="_blank">Windy</a></span
+        >
+        <span
+        >🌤️ <a href="https://openweathermap.org" target="_blank">OpenWeatherMap</a
+          >
+          <span
+            >🧊 <a href="https://xalazi.gr" target="_blank">xalazi.gr</a></span
+          >
+      </div>
+      <p>
+        &copy; 2025-2026 <span class="footer-brand">Thavma Forecast.gr</span> —
+        Δημιουργός: <b>NikosThavmaGR</b> — H σελίδα βρίσκεται υπό ανάπτυξη. *Τα
+        δεδομένα ίσως να είναι λανθασμένα.
+      </p>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
